@@ -1,8 +1,25 @@
-import { updateSession } from '@/lib/supabase/middleware'
-import { type NextRequest } from 'next/server'
+import { NextResponse, type NextRequest } from "next/server"
+
+import { SESSION_COOKIE_NAME } from "@/lib/auth-constants"
 
 export async function middleware(request: NextRequest) {
-  return await updateSession(request)
+  const isProtectedPath =
+    request.nextUrl.pathname.startsWith("/dashboard") ||
+    request.nextUrl.pathname.startsWith("/meetings") ||
+    request.nextUrl.pathname.startsWith("/profile")
+
+  if (!isProtectedPath) {
+    return NextResponse.next()
+  }
+
+  const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value
+  if (!sessionCookie) {
+    const loginUrl = request.nextUrl.clone()
+    loginUrl.pathname = "/auth/login"
+    return NextResponse.redirect(loginUrl)
+  }
+
+  return NextResponse.next()
 }
 
 export const config = {

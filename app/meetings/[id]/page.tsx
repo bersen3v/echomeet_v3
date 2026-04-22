@@ -1,6 +1,7 @@
 import { redirect, notFound } from "next/navigation"
 import Link from "next/link"
-import { createClient } from "@/lib/supabase/server"
+import { getCurrentUser } from "@/lib/auth-server"
+import { getMeetingById, listTasksForMeeting } from "@/lib/custom-backend"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { MeetingDetailClient } from "./meeting-detail-client"
 import { Button } from "@/components/ui/button"
@@ -12,28 +13,18 @@ interface MeetingPageProps {
 
 export default async function MeetingPage({ params }: MeetingPageProps) {
   const { id } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
 
   if (!user) {
     redirect("/auth/login")
   }
 
-  const { data: meeting, error } = await supabase
-    .from("meetings")
-    .select("*")
-    .eq("id", id)
-    .single()
-
-  if (error || !meeting) {
+  const meeting = await getMeetingById(id)
+  if (!meeting || meeting.user_id !== user.id) {
     notFound()
   }
 
-  const { data: tasks } = await supabase
-    .from("tasks")
-    .select("*")
-    .eq("meeting_id", id)
-    .order("created_at", { ascending: true })
+  const tasks = await listTasksForMeeting(id)
 
   return (
     <div className="min-h-screen">

@@ -4,7 +4,6 @@ import { useState } from "react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, User } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
 import type { Task } from "@/lib/types"
 
 interface TaskItemProps {
@@ -14,7 +13,6 @@ interface TaskItemProps {
 
 export function TaskItem({ task, onUpdate }: TaskItemProps) {
   const [isUpdating, setIsUpdating] = useState(false)
-  const supabase = createClient()
 
   const priorityColors = {
     low: "bg-muted text-muted-foreground",
@@ -35,12 +33,13 @@ export function TaskItem({ task, onUpdate }: TaskItemProps) {
     setIsUpdating(true)
     const newStatus = task.status === "done" ? "todo" : "done"
     
-    const { error } = await supabase
-      .from("tasks")
-      .update({ status: newStatus })
-      .eq("id", task.id)
+    const response = await fetch(`/api/tasks/${task.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: newStatus }),
+    })
 
-    if (!error && onUpdate) {
+    if (response.ok && onUpdate) {
       onUpdate({ ...task, status: newStatus })
     }
     setIsUpdating(false)

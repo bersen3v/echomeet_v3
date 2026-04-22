@@ -12,7 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { TaskItem } from "@/components/task-item"
 import { Calendar, Clock, FileText, CheckSquare, Plus, Loader2 } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
 import type { Meeting, Task } from "@/lib/types"
 
 interface MeetingDetailClientProps {
@@ -31,7 +30,6 @@ export function MeetingDetailClient({ meeting, initialTasks }: MeetingDetailClie
     priority: "medium" as "low" | "medium" | "high",
   })
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const supabase = createClient()
 
   const statusColors = {
     pending: "bg-warning/10 text-warning border-warning/20",
@@ -71,26 +69,23 @@ export function MeetingDetailClient({ meeting, initialTasks }: MeetingDetailClie
     if (!newTask.title.trim()) return
     
     setIsAddingTask(true)
-    
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
 
-    const { data, error } = await supabase
-      .from("tasks")
-      .insert({
-        meeting_id: meeting.id,
-        user_id: user.id,
+    const response = await fetch("/api/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        meetingId: meeting.id,
         title: newTask.title,
         description: newTask.description || null,
         assignee: newTask.assignee || null,
         deadline: newTask.deadline || null,
         priority: newTask.priority,
-        status: "todo",
-      })
-      .select()
-      .single()
+      }),
+    })
 
-    if (!error && data) {
+    if (response.ok) {
+      const payload = (await response.json()) as { task: Task }
+      const data = payload.task
       setTasks([...tasks, data])
       setNewTask({
         title: "",

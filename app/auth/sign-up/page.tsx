@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Mic, Loader2 } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -24,21 +23,19 @@ export default function SignUpPage() {
     setIsLoading(true)
     setError(null)
 
-    const supabase = createClient()
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || 
-          `${window.location.origin}/dashboard`,
-        data: {
-          full_name: fullName,
-        },
-      },
+    const response = await fetch("/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fullName,
+        email,
+        password,
+      }),
     })
 
-    if (error) {
-      setError(error.message)
+    if (!response.ok) {
+      const payload = (await response.json()) as { error?: string }
+      setError(payload.error || "Failed to create account")
       setIsLoading(false)
       return
     }

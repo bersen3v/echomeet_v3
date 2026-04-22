@@ -2,12 +2,11 @@ import Link from "next/link"
 import { Header } from "@/components/header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { createClient } from "@/lib/supabase/server"
+import { getCurrentUser } from "@/lib/auth-server"
 import { Mic, FileText, CheckSquare, Sparkles, ArrowRight, Zap, Clock, Shield } from "lucide-react"
 
 export default async function HomePage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
 
   return (
     <div className="flex min-h-screen flex-col">

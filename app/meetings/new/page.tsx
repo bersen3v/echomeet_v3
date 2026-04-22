@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { DashboardHeader } from "@/components/dashboard-header"
@@ -11,12 +11,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ArrowLeft, Upload, Loader2, FileAudio, X } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
 import { useDropzone } from "react-dropzone"
 
 export default function NewMeetingPage() {
   const router = useRouter()
-  const supabase = createClient()
   
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -26,16 +24,20 @@ export default function NewMeetingPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [user, setUser] = useState<{ email?: string; user_metadata?: { full_name?: string } } | null>(null)
 
-  // Get user on mount
-  useState(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) {
-        router.push("/auth/login")
-        return
-      }
-      setUser(user)
-    })
-  })
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then(async (response) => {
+        if (!response.ok) {
+          router.push("/auth/login")
+          return
+        }
+        const payload = (await response.json()) as {
+          user: { email?: string; user_metadata?: { full_name?: string } }
+        }
+        setUser(payload.user)
+      })
+      .catch(() => router.push("/auth/login"))
+  }, [router])
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
@@ -57,53 +59,24 @@ export default function NewMeetingPage() {
     setError(null)
 
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push("/auth/login")
-        return
-      }
-
-      let audioUrl = null
-
-      // Upload audio file if provided
-      if (audioFile) {
-        const fileExt = audioFile.name.split(".").pop()
-        const fileName = `${user.id}/${Date.now()}.${fileExt}`
-        
-        const { error: uploadError } = await supabase.storage
-          .from("meeting-audio")
-          .upload(fileName, audioFile)
-
-        if (uploadError) {
-          // Storage bucket might not exist, continue without audio
-          console.warn("Audio upload failed:", uploadError.message)
-        } else {
-          const { data: { publicUrl } } = supabase.storage
-            .from("meeting-audio")
-            .getPublicUrl(fileName)
-          audioUrl = publicUrl
-        }
-      }
-
-      // Create meeting record
-      const { data: meeting, error: insertError } = await supabase
-        .from("meetings")
-        .insert({
-          user_id: user.id,
+      const response = await fetch("/api/meetings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           title,
           description: description || null,
           date,
-          audio_url: audioUrl,
-          status: audioFile ? "pending" : "completed",
-        })
-        .select()
-        .single()
+          audioFileName: audioFile?.name || null,
+        }),
+      })
 
-      if (insertError) {
-        throw insertError
+      if (!response.ok) {
+        const payload = (await response.json()) as { error?: string }
+        throw new Error(payload.error || "Failed to create meeting")
       }
 
-      router.push(`/meetings/${meeting.id}`)
+      const payload = (await response.json()) as { meeting: { id: string } }
+      router.push(`/meetings/${payload.meeting.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred")
       setIsLoading(false)

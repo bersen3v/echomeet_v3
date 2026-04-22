@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { createClient } from "@/lib/supabase/server"
+import { getCurrentUser } from "@/lib/auth-server"
+import { listMeetings, listTasksByUser } from "@/lib/custom-backend"
 import { DashboardHeader } from "@/components/dashboard-header"
 import { MeetingCard } from "@/components/meeting-card"
 import { Button } from "@/components/ui/button"
@@ -9,24 +10,14 @@ import { Plus, Mic, FileText, CheckSquare } from "lucide-react"
 import type { Meeting } from "@/lib/types"
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
 
   if (!user) {
     redirect("/auth/login")
   }
 
-  // Fetch meetings
-  const { data: meetings } = await supabase
-    .from("meetings")
-    .select("*")
-    .order("date", { ascending: false })
-    .limit(10)
-
-  // Fetch task counts for each meeting
-  const { data: taskCounts } = await supabase
-    .from("tasks")
-    .select("meeting_id")
+  const meetings = (await listMeetings(user.id)).slice(0, 10)
+  const taskCounts = await listTasksByUser(user.id)
 
   const taskCountMap = new Map<string, number>()
   taskCounts?.forEach((task) => {

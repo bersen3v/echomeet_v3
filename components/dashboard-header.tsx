@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Mic, Plus, User, LogOut } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
 
 interface DashboardHeaderProps {
   user: {
@@ -26,10 +25,9 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ user }: DashboardHeaderProps) {
   const router = useRouter()
-  const supabase = createClient()
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
+    await fetch("/api/auth/logout", { method: "POST" })
     router.push("/")
     router.refresh()
   }

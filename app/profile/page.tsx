@@ -11,12 +11,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ArrowLeft, Loader2, Check } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
 import type { Profile } from "@/lib/types"
 
 export default function ProfilePage() {
   const router = useRouter()
-  const supabase = createClient()
   
   const [user, setUser] = useState<{ id: string; email?: string; user_metadata?: { full_name?: string; avatar_url?: string } } | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -28,24 +26,25 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const loadProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) {
+      const meResponse = await fetch("/api/auth/me")
+      if (!meResponse.ok) {
         router.push("/auth/login")
         return
       }
-      
+
+      const mePayload = (await meResponse.json()) as {
+        user: { id: string; email?: string; user_metadata?: { full_name?: string; avatar_url?: string } }
+      }
+      const user = mePayload.user
       setUser(user)
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single()
+      const profileResponse = await fetch("/api/profile")
+      const profilePayload = (await profileResponse.json()) as { profile: Profile | null }
+      const loadedProfile = profilePayload.profile
 
-      if (profile) {
-        setProfile(profile)
-        setFullName(profile.full_name || "")
+      if (loadedProfile) {
+        setProfile(loadedProfile)
+        setFullName(loadedProfile.full_name || "")
       } else {
         setFullName(user.user_metadata?.full_name || "")
       }
@@ -54,7 +53,7 @@ export default function ProfilePage() {
     }
 
     loadProfile()
-  }, [supabase, router])
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -63,23 +62,31 @@ export default function ProfilePage() {
     setSuccess(false)
 
     try {
-      // Update auth metadata
-      const { error: authError } = await supabase.auth.updateUser({
-        data: { full_name: fullName },
+      const response = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fullName }),
       })
+      if (!response.ok) {
+        const payload = (await response.json()) as { error?: string }
+        throw new Error(payload.error || "Failed to update profile")
+      }
 
-      if (authError) throw authError
-
-      // Update profile table
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .upsert({
-          id: user!.id,
-          full_name: fullName,
-          updated_at: new Date().toISOString(),
-        })
-
-      if (profileError) throw profileError
+      const payload = (await response.json()) as { profile: Profile | null }
+      if (payload.profile) {
+        setProfile(payload.profile)
+      }
+      setUser((prev) =>
+        prev
+          ? {
+              ...prev,
+              user_metadata: {
+                ...prev.user_metadata,
+                full_name: fullName,
+              },
+            }
+          : prev,
+      )
 
       setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
