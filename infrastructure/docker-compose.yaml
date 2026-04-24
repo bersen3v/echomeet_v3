@@ -1,6 +1,27 @@
 name: twenty
 
 services:
+  contact-email-webhook:
+    build:
+      context: ../crm/contact-email-webhook
+    ports:
+      - "8081:8080"
+    environment:
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM: ${SMTP_FROM}
+      SMTP_USE_TLS: ${SMTP_USE_TLS}
+      NOTIFY_TO: ${NOTIFY_TO}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET}
+    healthcheck:
+      test: curl --fail http://localhost:8080/healthz
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
   frontend:
     image: node:20-alpine
     working_dir: /app
