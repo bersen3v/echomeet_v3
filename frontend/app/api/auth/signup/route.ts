@@ -1,7 +1,38 @@
 import { NextResponse } from "next/server"
 
 import { SESSION_COOKIE_NAME } from "@/lib/auth-constants"
-import { createSession, createUser } from "@/lib/custom-backend"
+import { createSession, createUser, deleteUserById } from "@/lib/custom-backend"
+
+const CRM_SYNC_URL = process.env.CRM_SYNC_URL || "http://contact-email-webhook:8080/api/persons"
+const CRM_SYNC_SECRET = process.env.CRM_SYNC_SECRET || ""
+
+async function syncPersonToCrm(input: { email: string; fullName: string }): Promise<void> {
+  if (!CRM_SYNC_URL) {
+    return
+  }
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  }
+  if (CRM_SYNC_SECRET) {
+    headers["x-webhook-secret"] = CRM_SYNC_SECRET
+  }
+
+  const response = await fetch(CRM_SYNC_URL, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      email: input.email,
+      fullName: input.fullName,
+    }),
+    cache: "no-store",
+  })
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => ({}))) as { error?: string }
+    throw new Error(payload.error || "Failed to sync person to CRM")
+  }
+}
 
 export async function POST(request: Request) {
   const body = (await request.json()) as {
@@ -18,6 +49,19 @@ export async function POST(request: Request) {
 
   if ("error" in result) {
     return NextResponse.json({ error: result.error }, { status: 400 })
+  }
+
+  try {
+    await syncPersonToCrm({
+      email: result.user.email,
+      fullName: result.user.user_metadata.full_name || "",
+    })
+  } catch {
+    await deleteUserById(result.user.id)
+    return NextResponse.json(
+      { error: "Failed to sync contact to CRM, registration cancelled" },
+      { status: 502 },
+    )
   }
 
   const sessionId = await createSession(result.user.id)

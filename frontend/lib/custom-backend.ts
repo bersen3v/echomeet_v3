@@ -173,6 +173,14 @@ export async function createSession(userId: string): Promise<string> {
   return sessionId
 }
 
+export async function deleteUserById(userId: string): Promise<void> {
+  const db = await readDb()
+  db.users = db.users.filter((u) => u.id !== userId)
+  db.profiles = db.profiles.filter((p) => p.id !== userId)
+  db.sessions = db.sessions.filter((s) => s.user_id !== userId)
+  await writeDb(db)
+}
+
 export async function deleteSession(sessionId: string): Promise<void> {
   const db = await readDb()
   db.sessions = db.sessions.filter((s) => s.id !== sessionId)
