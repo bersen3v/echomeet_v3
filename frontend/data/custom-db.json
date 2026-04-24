@@ -1,0 +1,53 @@
+{
+  "users": [
+    {
+      "id": "3372c62f-6124-4112-bca7-9b5464fba46a",
+      "email": "bersenev4dev@gmail.com",
+      "password_hash": "763d8bf636d421742906903d34b970b3:1a80b0c286c80cdbbdf55054b7c8580f0a90ddd4e2c420d67bba0ab87e2eca7ec128e1597e10943ea54a421d539646a0ce1101051b248b5fd00f3adeafa99dcf",
+      "full_name": "Иван",
+      "avatar_url": null,
+      "created_at": "2026-04-22T14:15:44.642Z",
+      "updated_at": "2026-04-22T14:15:44.642Z"
+    }
+  ],
+  "sessions": [
+    {
+      "id": "86d3a3cc-b3e5-4e18-9927-59ac9e12381a",
+      "user_id": "3372c62f-6124-4112-bca7-9b5464fba46a",
+      "created_at": "2026-04-22T14:15:44.667Z",
+      "expires_at": "2026-05-22T14:15:44.667Z"
+    },
+    {
+      "id": "4e267a1f-d93f-46fd-8a44-f512aa4e38e1",
+      "user_id": "3372c62f-6124-4112-bca7-9b5464fba46a",
+      "created_at": "2026-04-22T14:16:40.269Z",
+      "expires_at": "2026-05-22T14:16:40.269Z"
+    }
+  ],
+  "profiles": [
+    {
+      "id": "3372c62f-6124-4112-bca7-9b5464fba46a",
+      "full_name": "Иван",
+      "avatar_url": null,
+      "created_at": "2026-04-22T14:15:44.642Z",
+      "updated_at": "2026-04-22T14:15:44.642Z"
+    }
+  ],
+  "meetings": [
+    {
+      "id": "68730f9c-0a17-4dc4-82c6-c5b12d887899",
+      "user_id": "3372c62f-6124-4112-bca7-9b5464fba46a",
+      "title": "ываыва",
+      "description": "ываыва",
+      "date": "2026-04-22",
+      "duration": null,
+      "audio_url": "2026-01-16-10-11-18-UTC_out_106_i6a0.mp3",
+      "transcript": null,
+      "summary": null,
+      "status": "completed",
+      "created_at": "2026-04-22T14:17:00.126Z",
+      "updated_at": "2026-04-22T14:17:00.126Z"
+    }
+  ],
+  "tasks": []
+}
